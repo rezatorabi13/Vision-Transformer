@@ -1,12 +1,14 @@
-import keras
 from keras import layers
 from keras import ops
-import numpy as np
+
 
 class PatchEncoder(layers.Layer):
-    def __init__(self, num_patches, projection_dim):
-        super().__init__()
+    """Linearly projects patches and adds a learned position embedding."""
+
+    def __init__(self, num_patches, projection_dim, **kwargs):
+        super().__init__(**kwargs)
         self.num_patches = num_patches
+        self.projection_dim = projection_dim
         self.projection = layers.Dense(units=projection_dim)
         self.position_embedding = layers.Embedding(
             input_dim=num_patches, output_dim=projection_dim
@@ -22,5 +24,7 @@ class PatchEncoder(layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        config.update({"num_patches": self.num_patches})
+        config.update(
+            {"num_patches": self.num_patches, "projection_dim": self.projection_dim}
+        )
         return config

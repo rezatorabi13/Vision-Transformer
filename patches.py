@@ -1,6 +1,13 @@
+import keras
+from keras import layers
+from keras import ops
+
+
 class Patches(layers.Layer):
-    def __init__(self, patch_size):
-        super().__init__()
+    """Splits a batch of images into flattened, non-overlapping square patches."""
+
+    def __init__(self, patch_size, **kwargs):
+        super().__init__(**kwargs)
         self.patch_size = patch_size
 
     def call(self, images):

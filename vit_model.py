@@ -1,12 +1,24 @@
 import keras
 from keras import layers
-from keras import ops
-import numpy as np
-import matplotlib.pyplot as plt
+
 from mlp import mlp
+from patches import Patches
 from patch_encoder import PatchEncoder
 
-def create_vit():
+
+def create_vit(
+    input_shape,
+    num_classes,
+    data_augmentation,
+    patch_size,
+    num_patches,
+    projection_dim,
+    num_heads,
+    transformer_units,
+    transformer_layers,
+    mlp_head_units,
+):
+    """Builds a Vision Transformer classifier that outputs logits."""
     inputs = keras.Input(shape=input_shape)
     # Augment data.
     augmented = data_augmentation(inputs)

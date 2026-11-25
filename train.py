@@ -1,21 +1,28 @@
 import os
 
-os.environ["KERAS_BACKEND"] = "jax"  # @param ["tensorflow", "jax", "torch"]
+# Default backend; override with the KERAS_BACKEND environment variable.
+os.environ.setdefault("KERAS_BACKEND", "jax")  # "tensorflow" | "jax" | "torch"
+
+import tempfile
 
 import keras
 from keras import layers
-from keras import ops
-import numpy as np
 import matplotlib.pyplot as plt
-from patches import Patches
-from mlp import mlp
+
 from vit_model import create_vit
-from plot_patches import plot_patches
-from patch_encoder import PatchEncoder
 
 
-
-def run_experiment(model):
+def run_experiment(
+    model,
+    x_train,
+    y_train,
+    x_test,
+    y_test,
+    learning_rate,
+    weight_decay,
+    batch_size,
+    num_epochs,
+):
     optimizer = keras.optimizers.AdamW(
         learning_rate=learning_rate, weight_decay=weight_decay
     )
@@ -29,7 +36,7 @@ def run_experiment(model):
         ],
     )
 
-    checkpoint_filepath = "/tmp/checkpoint.weights.h5"
+    checkpoint_filepath = os.path.join(tempfile.gettempdir(), "vit_checkpoint.weights.h5")
     checkpoint_callback = keras.callbacks.ModelCheckpoint(
         checkpoint_filepath,
         monitor="val_accuracy",
@@ -53,7 +60,8 @@ def run_experiment(model):
 
     return history
 
-def plot_history(item):
+
+def plot_history(history, item):
     plt.plot(history.history[item], label=item)
     plt.plot(history.history["val_" + item], label="val_" + item)
     plt.xlabel("Epochs")
@@ -63,8 +71,8 @@ def plot_history(item):
     plt.grid()
     plt.show()
 
-if __name__==__main__:
 
+if __name__ == "__main__":
     num_classes = 100
     input_shape = (32, 32, 3)
     (x_train, y_train), (x_test, y_test) = keras.datasets.cifar100.load_data()
@@ -77,7 +85,7 @@ if __name__==__main__:
     batch_size = 256
     num_epochs = 10  # For real training, use num_epochs=100. 10 is a test value
     image_size = 72  # We'll resize input images to this size
-    patch_size = 6  # Size of the patches to be extract from the input images
+    patch_size = 6  # Size of the patches to be extracted from the input images
     num_patches = (image_size // patch_size) ** 2
     projection_dim = 64
     num_heads = 4
@@ -92,21 +100,41 @@ if __name__==__main__:
     ]  # Size of the dense layers of the final classifier
 
     data_augmentation = keras.Sequential(
-    [
-        layers.Normalization(),
-        layers.Resizing(image_size, image_size),
-        layers.RandomFlip("horizontal"),
-        layers.RandomRotation(factor=0.02),
-        layers.RandomZoom(height_factor=0.2, width_factor=0.2),
-    ],
-    name="data_augmentation",
+        [
+            layers.Normalization(),
+            layers.Resizing(image_size, image_size),
+            layers.RandomFlip("horizontal"),
+            layers.RandomRotation(factor=0.02),
+            layers.RandomZoom(height_factor=0.2, width_factor=0.2),
+        ],
+        name="data_augmentation",
     )
     # Compute the mean and the variance of the training data for normalization.
     data_augmentation.layers[0].adapt(x_train)
 
+    vit_classifier = create_vit(
+        input_shape=input_shape,
+        num_classes=num_classes,
+        data_augmentation=data_augmentation,
+        patch_size=patch_size,
+        num_patches=num_patches,
+        projection_dim=projection_dim,
+        num_heads=num_heads,
+        transformer_units=transformer_units,
+        transformer_layers=transformer_layers,
+        mlp_head_units=mlp_head_units,
+    )
+    history = run_experiment(
+        vit_classifier,
+        x_train,
+        y_train,
+        x_test,
+        y_test,
+        learning_rate=learning_rate,
+        weight_decay=weight_decay,
+        batch_size=batch_size,
+        num_epochs=num_epochs,
+    )
 
-    vit_classifier = create_vit()
-    history = run_experiment(vit_classifier)
-
-    plot_history("loss")
-    plot_history("top-5-accuracy")
+    plot_history(history, "loss")
+    plot_history(history, "top-5-accuracy")

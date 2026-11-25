@@ -1,11 +1,12 @@
-import keras
-from keras import layers
-from keras import ops
 import numpy as np
 import matplotlib.pyplot as plt
+from keras import ops
+
 from patches import Patches
 
-def plot_patches(x_train):
+
+def plot_patches(x_train, image_size, patch_size):
+    """Shows a random training image and the grid of patches extracted from it."""
     plt.figure(figsize=(4, 4))
     image = x_train[np.random.choice(range(x_train.shape[0]))]
     plt.imshow(image.astype("uint8"))
@@ -23,7 +24,8 @@ def plot_patches(x_train):
     n = int(np.sqrt(patches.shape[1]))
     plt.figure(figsize=(4, 4))
     for i, patch in enumerate(patches[0]):
-        ax = plt.subplot(n, n, i + 1)
+        plt.subplot(n, n, i + 1)
         patch_img = ops.reshape(patch, (patch_size, patch_size, 3))
         plt.imshow(ops.convert_to_numpy(patch_img).astype("uint8"))
         plt.axis("off")
+    plt.show()
